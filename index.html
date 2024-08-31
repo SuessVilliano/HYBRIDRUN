@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road to Success: The Entrepreneur's Journey</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #8e44ad, #16a085);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            background: url('path_to_your_background_image.png') no-repeat center center;
+            background-size: cover;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // Canvas setup and responsiveness
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // Initial resize
+
+        // Load images and sounds
+        const mascotImg = new Image();
+        mascotImg.src = 'path_to_mascot_sprite_sheet.png'; // Sprite sheet for animations
+
+        const coinImg = new Image();
+        coinImg.src = 'path_to_coin_image.png';
+
+        const sprayImg = new Image();
+        sprayImg.src = 'path_to_spray_image.png';
+
+        const obstacleImg = new Image();
+        obstacleImg.src = 'path_to_obstacle_image.png';
+
+        const jumpSound = new Audio('path_to_jump_sound.mp3');
+        const coinSound = new Audio('path_to_coin_sound.mp3');
+        const backgroundMusic = new Audio('path_to_background_music.mp3');
+        backgroundMusic.loop = true;
+        backgroundMusic.volume = 0.5;
+        backgroundMusic.play();
+
+        // Game variables
+        let player = {
+            x: 50,
+            y: 300,
+            width: 50,
+            height: 50,
+            dy: 0,
+            gravity: 0.5,
+            jumpHeight: -10,
+            grounded: false,
+            score: 0,
+            frameX: 0,  // For sprite animation
+            frameY: 0,
+            speed: 5
+        };
+
+        let obstacles = [];
+        let coins = [];
+        let powerUpActive = false;
+        let powerUpTimer = 0;
+        let gameSpeed = 5;
+        let isJumping = false;
+
+        // Input event listener
+        document.addEventListener('keydown', function(event) {
+            if(event.code === 'Space' && player.grounded) {
+                player.dy = player.jumpHeight;
+                player.grounded = false;
+                isJumping = true;
+                jumpSound.play();
+            }
+        });
+
+        // Touch event listener for mobile
+        document.addEventListener('touchstart', function() {
+            if(player.grounded) {
+                player.dy = player.jumpHeight;
+                player.grounded = false;
+                isJumping = true;
+                jumpSound.play();
+            }
+        });
+
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Update game state
+        function update() {
+            // Gravity
+            player.dy += player.gravity;
+            player.y += player.dy;
+
+            // Ground detection
+            if(player.y + player.height >= canvas.height - 50) {
+                player.y = canvas.height - player.height - 50;
+                player.grounded = true;
+                player.dy = 0;
+                isJumping = false;
+            }
+
+            // Move obstacles
+            for(let i = 0; i < obstacles.length; i++) {
+                obstacles[i].x -= gameSpeed;
+                if(obstacles[i].x + obstacles[i].width < 0) {
+                    obstacles.splice(i, 1);
+                    i--;
+                }
+            }
+
+            // Move coins
+            for(let i = 0; i < coins.length; i++) {
+                coins[i].x -= gameSpeed;
+                if(coins[i].x + coins[i].width < 0) {
+                    coins.splice(i, 1);
+                    i--;
+                }
+            }
+
+            // Collision detection (obstacles)
+            obstacles.forEach(obstacle => {
+                if(player.x < obstacle.x + obstacle.width &&
+                    player.x + player.width > obstacle.x &&
+                    player.y < obstacle.y + obstacle.height &&
+                    player.y + player.height > obstacle.y) {
+                        if (!powerUpActive) {
+                            alert('Game Over! Your score: ' + player.score);
+                            document.location.reload();
+                        }
+                }
+            });
+
+            // Collision detection (coins)
+            coins.forEach((coin, index) => {
+                if(player.x < coin.x + coin.width &&
+                    player.x + player.width > coin.x &&
+                    player.y < coin.y + coin.height &&
+                    player.y + player.height > coin.y) {
+                        player.score += 10;
+                        coinSound.play();
+                        coins.splice(index, 1);
+                }
+            });
+
+            // Generate obstacles & coins
+            if(Math.random() < 0.01) {
+                obstacles.push({x: canvas.width, y: canvas.height - 100, width: 50, height: 50});
+            }
+
+            if(Math.random() < 0.02) {
+                coins.push({x: canvas.width, y: Math.random() * (canvas.height - 100), width: 20, height: 20});
+            }
+
+            // Handle power-up timing
+            if (powerUpActive) {
+                powerUpTimer--;
+                if (powerUpTimer <= 0) {
+                    powerUpActive = false;
+                }
+            }
+
+            // Update sprite animation
+            player.frameX = isJumping ? 1 : (player.frameX + 1) % 4; // Cycle through frames 0 to 3 when running
+        }
+
+        // Draw game elements
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw player (mascot with animation)
+            const spriteWidth = 50;  // Width of each frame in the sprite sheet
+            const spriteHeight = 50;  // Height of each frame
+            ctx.drawImage(mascotImg, player.frameX * spriteWidth, player.frameY * spriteHeight, spriteWidth, spriteHeight, player.x, player.y, player.width, player.height);
+
+            // Draw obstacles
+            obstacles.forEach(obstacle => {
+                ctx.drawImage(obstacleImg, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+
+            // Draw coins
+            coins.forEach(coin => {
+                ctx.drawImage(coinImg, coin.x, coin.y, coin.width, coin.height);
+            });
+
+            // Draw power-up effect (if active)
+            if (powerUpActive) {
+                ctx.globalAlpha = 0.5;
+                ctx.drawImage(sprayImg, player.x - 10, player.y - 10, player.width + 20, player.height + 20);
+                ctx.globalAlpha = 1.0;
+            }
+
+            // Draw score
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '20px Arial';
+            ctx.fillText('Score: ' + player.score, 10, 30);
+        }
+
+        // Activate power-up
+        function activatePowerUp() {
+            powerUpActive = true;
+            powerUpTimer = 300;  // Power-up lasts for 300 frames (5 seconds at 60 fps)
+        }
+
+        // Start the game loop
+        gameLoop();
+    </script>
+</body>
+</html>
