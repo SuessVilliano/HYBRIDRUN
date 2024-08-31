@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyberpunk Runner - Powered by LIV8</title>
+    <title>Hybrid Runner - Powered by LIV8</title>
     <style>
         body, html {
             margin: 0;
@@ -17,7 +17,7 @@
             background: #000;
             border: 2px solid #00ffff;
         }
-        #welcomeScreen, #gameOverScreen {
+        #welcomeScreen, #gameOverScreen, #victoryScreen {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -59,15 +59,20 @@
 <body>
     <canvas id="gameCanvas"></canvas>
     <div id="welcomeScreen">
-        <h1>Welcome to Cyberpunk Runner</h1>
+        <h1>Welcome to Hybrid Runner</h1>
         <p>Jump over obstacles and collect neon orbs to score points!</p>
         <p>Instructions:</p>
         <ul style="text-align: left;">
             <li>Use SPACEBAR to jump</li>
             <li>Avoid red obstacles</li>
             <li>Collect yellow coins for points</li>
-            <li>The game gets faster over time</li>
+            <li>Reach the target score to win!</li>
         </ul>
+        <select id="difficultySelect">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+        </select>
         <button id="startButton">Start Game</button>
     </div>
     <div id="gameOverScreen" style="display: none;">
@@ -76,6 +81,12 @@
         <input type="text" id="playerName" placeholder="Enter your name">
         <button id="submitScore">Submit Score</button>
         <button id="restartButton">Restart Game</button>
+    </div>
+    <div id="victoryScreen" style="display: none;">
+        <h2>Congratulations!</h2>
+        <p>You've reached the target score and won the game!</p>
+        <p>Final score: <span id="victoryScore"></span></p>
+        <button id="playAgainButton">Play Again</button>
     </div>
     <div id="leaderboard">
         <h3>Top Scores</h3>
@@ -88,13 +99,16 @@
         const ctx = canvas.getContext('2d');
         const welcomeScreen = document.getElementById('welcomeScreen');
         const gameOverScreen = document.getElementById('gameOverScreen');
+        const victoryScreen = document.getElementById('victoryScreen');
         const startButton = document.getElementById('startButton');
         const restartButton = document.getElementById('restartButton');
+        const playAgainButton = document.getElementById('playAgainButton');
         const submitScoreButton = document.getElementById('submitScore');
         const leaderboardList = document.getElementById('leaderboardList');
+        const difficultySelect = document.getElementById('difficultySelect');
 
         let gameActive = false;
-        let player, obstacles, coins, gameSpeed, score;
+        let player, obstacles, coins, gameSpeed, score, targetScore;
         let leaderboard = [];
 
         function resizeCanvas() {
@@ -106,6 +120,7 @@
         resizeCanvas();
 
         function initGame() {
+            const difficulty = difficultySelect.value;
             player = {
                 x: 50,
                 y: canvas.height - 150,
@@ -118,13 +133,28 @@
             };
             obstacles = [];
             coins = [];
-            gameSpeed = 5;
             score = 0;
+
+            switch(difficulty) {
+                case 'easy':
+                    gameSpeed = 5;
+                    targetScore = 100;
+                    break;
+                case 'medium':
+                    gameSpeed = 7;
+                    targetScore = 200;
+                    break;
+                case 'hard':
+                    gameSpeed = 9;
+                    targetScore = 300;
+                    break;
+            }
         }
 
         function startGame() {
             welcomeScreen.style.display = 'none';
             gameOverScreen.style.display = 'none';
+            victoryScreen.style.display = 'none';
             gameActive = true;
             initGame();
             gameLoop();
@@ -132,6 +162,7 @@
 
         startButton.addEventListener('click', startGame);
         restartButton.addEventListener('click', startGame);
+        playAgainButton.addEventListener('click', startGame);
 
         document.addEventListener('keydown', function(event) {
             if (event.code === 'Space' && player.grounded && gameActive) {
@@ -149,13 +180,85 @@
         }
 
         function update() {
-            // Game update logic (unchanged)
-            // ... (keep the existing update logic here)
+            player.dy += player.gravity;
+            player.y += player.dy;
+
+            if (player.y + player.height > canvas.height - 50) {
+                player.y = canvas.height - player.height - 50;
+                player.dy = 0;
+                player.grounded = true;
+            }
+
+            obstacles.forEach((obstacle, index) => {
+                obstacle.x -= gameSpeed;
+                if (obstacle.x + obstacle.width < 0) {
+                    obstacles.splice(index, 1);
+                }
+                if (collision(player, obstacle)) {
+                    gameOver();
+                }
+            });
+
+            coins.forEach((coin, index) => {
+                coin.x -= gameSpeed;
+                if (coin.x + coin.width < 0) {
+                    coins.splice(index, 1);
+                }
+                if (collision(player, coin)) {
+                    score += 10;
+                    coins.splice(index, 1);
+                    if (score >= targetScore) {
+                        victory();
+                    }
+                }
+            });
+
+            if (Math.random() < 0.02) {
+                obstacles.push({
+                    x: canvas.width,
+                    y: canvas.height - 100,
+                    width: 40,
+                    height: Math.random() * 30 + 30
+                });
+            }
+
+            if (Math.random() < 0.03) {
+                coins.push({
+                    x: canvas.width,
+                    y: Math.random() * (canvas.height - 200) + 50,
+                    width: 20,
+                    height: 20
+                });
+            }
+
+            gameSpeed += 0.001;
         }
 
         function draw() {
-            // Game drawing logic (unchanged)
-            // ... (keep the existing draw logic here)
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            ctx.fillStyle = '#ff0000';
+            obstacles.forEach(obstacle => {
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+
+            ctx.fillStyle = '#ffff00';
+            coins.forEach(coin => {
+                ctx.beginPath();
+                ctx.arc(coin.x + coin.width/2, coin.y + coin.height/2, coin.width/2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+            ctx.fillStyle = '#00ffff';
+            ctx.font = '24px Arial';
+            ctx.fillText('Score: ' + score + ' / ' + targetScore, 20, 40);
         }
 
         function collision(a, b) {
@@ -171,11 +274,17 @@
             document.getElementById('finalScore').textContent = score;
         }
 
+        function victory() {
+            gameActive = false;
+            victoryScreen.style.display = 'block';
+            document.getElementById('victoryScore').textContent = score;
+        }
+
         submitScoreButton.addEventListener('click', function() {
             const playerName = document.getElementById('playerName').value || 'Anonymous';
             leaderboard.push({name: playerName, score: score});
             leaderboard.sort((a, b) => b.score - a.score);
-            leaderboard = leaderboard.slice(0, 5);  // Keep top 5 scores
+            leaderboard = leaderboard.slice(0, 5);
             updateLeaderboard();
             gameOverScreen.style.display = 'none';
             welcomeScreen.style.display = 'block';
@@ -190,7 +299,6 @@
             });
         }
 
-        // Initialize the welcome screen instead of starting the game immediately
         welcomeScreen.style.display = 'block';
     </script>
 </body>
