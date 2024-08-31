@@ -5,101 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hybrid Runner - Powered by LIV8</title>
     <style>
-        /* Styles remain the same as before */
+        /* Your existing styles here */
     </style>
 </head>
 <body>
-    <!-- HTML structure remains the same as before -->
+    <!-- Your existing HTML structure here -->
 
     <script>
-        // ... (previous variable declarations and setup)
-
-        let isJumping = false;
-        let jumpTimer = 0;
-        const MAX_JUMP_TIME = 300; // milliseconds
+        // Your existing variable declarations and setup
 
         function initGame() {
-            // ... (initialization code remains the same)
+            // Your existing initGame function
         }
 
         function startGame() {
-            // ... (start game code remains the same)
+            // Your existing startGame function
         }
 
-        function handleJumpStart() {
-            if (player.grounded && gameActive) {
-                player.dy = player.jumpPower;
-                player.grounded = false;
-                isJumping = true;
-                jumpTimer = 0;
+        // Modify the event listener to handle both keyboard and touch
+        function handleJump(event) {
+            if ((event.type === 'keydown' && event.code === 'Space') || 
+                (event.type === 'touchstart')) {
+                if (player.grounded && gameActive) {
+                    player.dy = player.jumpPower;
+                    player.grounded = false;
+                }
             }
         }
 
-        function handleJumpEnd() {
-            isJumping = false;
-        }
-
-        // Keyboard controls
-        document.addEventListener('keydown', function(event) {
-            if (event.code === 'Space') {
-                handleJumpStart();
-            }
-        });
-
-        document.addEventListener('keyup', function(event) {
-            if (event.code === 'Space') {
-                handleJumpEnd();
-            }
-        });
-
-        // Touch controls
-        canvas.addEventListener('touchstart', function(event) {
-            event.preventDefault();
-            handleJumpStart();
-        });
-
-        canvas.addEventListener('touchend', function(event) {
-            event.preventDefault();
-            handleJumpEnd();
-        });
+        // Add event listeners for both keyboard and touch
+        document.addEventListener('keydown', handleJump);
+        canvas.addEventListener('touchstart', handleJump);
 
         function gameLoop() {
-            update();
-            draw();
-            if (gameActive) {
-                requestAnimationFrame(gameLoop);
-            }
+            // Your existing gameLoop function
         }
 
         function update() {
-            if (isJumping) {
-                jumpTimer += 16; // Assuming 60 FPS
-                if (jumpTimer > MAX_JUMP_TIME) {
-                    isJumping = false;
-                }
-            }
-
-            player.dy += player.gravity;
-            if (isJumping && jumpTimer <= MAX_JUMP_TIME) {
-                player.dy = player.jumpPower;
-            }
-            player.y += player.dy;
-
-            if (player.y + player.height > canvas.height - 50) {
-                player.y = canvas.height - player.height - 50;
-                player.dy = 0;
-                player.grounded = true;
-            }
-
-            // ... (rest of the update logic remains the same)
+            // Your existing update function
         }
 
         function draw() {
-            // ... (drawing logic remains the same)
+            // Your existing draw function
         }
 
-        // ... (rest of the functions remain the same)
+        function collision(a, b) {
+            // Your existing collision function
+        }
 
+        function gameOver() {
+            // Your existing gameOver function
+        }
+
+        function victory() {
+            // Your existing victory function
+        }
+
+        // Your existing event listeners and other functions
+
+        // Make sure to call this at the end to show the welcome screen
         welcomeScreen.style.display = 'block';
     </script>
 </body>
