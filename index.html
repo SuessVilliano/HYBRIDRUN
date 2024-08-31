@@ -63,7 +63,7 @@
         <p>Jump over obstacles and collect neon orbs to score points!</p>
         <p>Instructions:</p>
         <ul style="text-align: left;">
-            <li>Use SPACEBAR or TAP to jump</li>
+            <li>Use SPACEBAR or TAP to jump (hold for higher jumps)</li>
             <li>Avoid red obstacles</li>
             <li>Collect yellow coins for points</li>
             <li>Reach the target score to win!</li>
@@ -110,6 +110,10 @@
         let gameActive = false;
         let player, obstacles, coins, gameSpeed, score, targetScore;
         let leaderboard = [];
+        let lastObstacleX = 0;
+        let isJumping = false;
+        let jumpTimer = 0;
+        const MAX_JUMP_TIME = 300; // milliseconds
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -127,13 +131,14 @@
                 width: 40,
                 height: 40,
                 dy: 0,
-                jumpPower: -15,
-                gravity: 0.6,
+                jumpPower: -12,
+                gravity: 0.5,
                 grounded: false
             };
             obstacles = [];
             coins = [];
             score = 0;
+            lastObstacleX = canvas.width;
 
             switch(difficulty) {
                 case 'easy':
@@ -168,14 +173,20 @@
             if ((event.type === 'keydown' && event.code === 'Space') || 
                 (event.type === 'touchstart')) {
                 if (player.grounded && gameActive) {
-                    player.dy = player.jumpPower;
-                    player.grounded = false;
+                    isJumping = true;
+                    jumpTimer = 0;
                 }
+            }
+            if ((event.type === 'keyup' && event.code === 'Space') || 
+                (event.type === 'touchend')) {
+                isJumping = false;
             }
         }
 
         document.addEventListener('keydown', handleJump);
+        document.addEventListener('keyup', handleJump);
         canvas.addEventListener('touchstart', handleJump);
+        canvas.addEventListener('touchend', handleJump);
 
         function gameLoop() {
             update();
@@ -186,7 +197,13 @@
         }
 
         function update() {
-            player.dy += player.gravity;
+            if (isJumping && jumpTimer < MAX_JUMP_TIME) {
+                player.dy = player.jumpPower;
+                jumpTimer += 16; // Assuming 60 FPS
+            } else {
+                player.dy += player.gravity;
+            }
+
             player.y += player.dy;
 
             if (player.y + player.height > canvas.height - 50) {
@@ -195,11 +212,28 @@
                 player.grounded = true;
             }
 
-            obstacles.forEach((obstacle, index) => {
+            // Remove obstacles that are off-screen
+            obstacles = obstacles.filter(obstacle => obstacle.x + obstacle.width > 0);
+
+            // Generate new obstacles
+            if (obstacles.length === 0 || lastObstacleX - obstacles[obstacles.length - 1].x > 300) {
+                const gap = Math.random() * 100 + 150; // Gap between 150 and 250 pixels
+                const obstacleWidth = Math.random() * 30 + 30; // Width between 30 and 60 pixels
+                const obstacleHeight = Math.random() * 50 + 30; // Height between 30 and 80 pixels
+
+                obstacles.push({
+                    x: lastObstacleX,
+                    y: canvas.height - 50 - obstacleHeight,
+                    width: obstacleWidth,
+                    height: obstacleHeight
+                });
+
+                lastObstacleX += obstacleWidth + gap;
+            }
+
+            // Move obstacles
+            obstacles.forEach(obstacle => {
                 obstacle.x -= gameSpeed;
-                if (obstacle.x + obstacle.width < 0) {
-                    obstacles.splice(index, 1);
-                }
                 if (collision(player, obstacle)) {
                     gameOver();
                 }
@@ -219,16 +253,7 @@
                 }
             });
 
-            if (Math.random() < 0.02) {
-                obstacles.push({
-                    x: canvas.width,
-                    y: canvas.height - 100,
-                    width: 40,
-                    height: Math.random() * 30 + 30
-                });
-            }
-
-            if (Math.random() < 0.03) {
+            if (Math.random() < 0.02 && coins.length < 5) {
                 coins.push({
                     x: canvas.width,
                     y: Math.random() * (canvas.height - 200) + 50,
